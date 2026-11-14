@@ -1,0 +1,13 @@
+{
+  "appId": "com.abhim5yu.cake",
+  "appName": "Cake",
+  "webDir": "www",
+  "backgroundColor": "#0D0E10",
+  "plugins": {
+    "StatusBar": {
+      "style": "DARK",
+      "backgroundColor": "#0D0E10",
+      "overlaysWebView": false
+    }
+  }
+}
