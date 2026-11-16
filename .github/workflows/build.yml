@@ -18,6 +18,7 @@ jobs:
       - run: '[ -d android ] || npx cap add android'
       - run: npx capacitor-assets generate --android
       - run: npx cap sync android
+      - run: mkdir -p ~/.android && cp keystore/debug.keystore ~/.android/debug.keystore
       - run: chmod +x android/gradlew
       - run: cd android && ./gradlew assembleDebug
       - uses: actions/upload-artifact@v4
