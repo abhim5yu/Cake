@@ -29,6 +29,37 @@ jobs:
       - name: Generate Android project
         run: npx cap add android
 
+      - name: Force cake icon
+        run: |
+          pip install --break-system-packages pillow
+          python3 - <<'PY'
+          import os
+          from PIL import Image, ImageDraw
+          res = "android/app/src/main/res"
+          sizes = {"mdpi": (48, 108), "hdpi": (72, 162), "xhdpi": (96, 216), "xxhdpi": (144, 324), "xxxhdpi": (192, 432)}
+          icon = Image.open("assets/icon-only.png").convert("RGBA")
+          fg = Image.open("assets/icon-foreground.png").convert("RGBA")
+          for d, (leg, ad) in sizes.items():
+              p = f"{res}/mipmap-{d}"
+              os.makedirs(p, exist_ok=True)
+              sq = icon.resize((leg, leg), Image.LANCZOS)
+              sq.save(f"{p}/ic_launcher.png")
+              m = Image.new("L", (leg * 4, leg * 4), 0)
+              ImageDraw.Draw(m).ellipse([0, 0, leg * 4 - 1, leg * 4 - 1], fill=255)
+              m = m.resize((leg, leg), Image.LANCZOS)
+              rd = Image.new("RGBA", (leg, leg), (0, 0, 0, 0))
+              rd.paste(sq, (0, 0), m)
+              rd.save(f"{p}/ic_launcher_round.png")
+              fg.resize((ad, ad), Image.LANCZOS).save(f"{p}/ic_launcher_foreground.png")
+          os.makedirs(f"{res}/mipmap-anydpi-v26", exist_ok=True)
+          xml = '<?xml version="1.0" encoding="utf-8"?>\n<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">\n    <background android:drawable="@color/cake_icon_bg"/>\n    <foreground android:drawable="@mipmap/ic_launcher_foreground"/>\n</adaptive-icon>\n'
+          for n in ("ic_launcher.xml", "ic_launcher_round.xml"):
+              open(f"{res}/mipmap-anydpi-v26/{n}", "w").write(xml)
+          os.makedirs(f"{res}/values", exist_ok=True)
+          open(f"{res}/values/cake_icon_bg.xml", "w").write('<?xml version="1.0" encoding="utf-8"?>\n<resources>\n    <color name="cake_icon_bg">#0D0E10</color>\n</resources>\n')
+          PY
+          find android/app/src/main/res -name "ic_launcher*" -o -name "cake_icon_bg*" | sort
+
       - name: Dark launch screen
         run: |
           f=android/app/src/main/res/values/styles.xml
@@ -37,6 +68,9 @@ jobs:
 
       - name: Sync web assets
         run: npx cap sync android
+
+      - name: Use stable debug keystore
+        run: mkdir -p ~/.android && cp keystore/debug.keystore ~/.android/debug.keystore
 
       - name: Build debug APK
         working-directory: android
