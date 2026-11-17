@@ -94,13 +94,37 @@ jobs:
         run: npx cap sync android
 
       - name: Use stable debug keystore
-        run: mkdir -p ~/.android && cp keystore/debug.keystore ~/.android/debug.keystore
+        run: |
+          set -e
+          test -f keystore/debug.keystore || { echo "keystore/debug.keystore is missing from the repo"; exit 1; }
+          mkdir -p ~/.android
+          cp keystore/debug.keystore ~/.android/debug.keystore
+          echo "Keystore SHA-256 (from repo file):"
+          keytool -list -v -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey \
+            | grep "SHA256:" | head -1 || { echo "Could not read keystore. Wrong alias or password."; exit 1; }
 
       - name: Build debug APK
         working-directory: android
         run: |
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
+
+      - name: Verify APK signing key matches keystore
+        run: |
+          set -e
+          APK=android/app/build/outputs/apk/debug/app-debug.apk
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)
+          KS=$(keytool -list -v -keystore keystore/debug.keystore -storepass android -alias androiddebugkey 2>/dev/null \
+               | grep "SHA256:" | head -1 | sed 's/.*SHA256: //' | tr -d ': ' | tr 'A-F' 'a-f')
+          APKSIG=$("$BT/apksigner" verify --print-certs "$APK" \
+               | grep "certificate SHA-256" | head -1 | sed 's/.*digest: //' | tr -d ': ' | tr 'A-F' 'a-f')
+          echo "Keystore fingerprint: $KS"
+          echo "APK fingerprint:      $APKSIG"
+          if [ -z "$KS" ] || [ "$KS" != "$APKSIG" ]; then
+            echo "MISMATCH: this APK would not install over the previous build. Not publishing."
+            exit 1
+          fi
+          echo "OK: APK is signed with the repo keystore."
 
       - name: Upload APK as artifact
         uses: actions/upload-artifact@v4
