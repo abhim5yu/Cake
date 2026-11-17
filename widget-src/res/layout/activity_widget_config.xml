@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Widget setup screen: pick a person, transparency, and text color. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#FF0D0E10"
+    android:padding="16dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Choose a person"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:textColor="#FF9A9892"
+        android:layout_marginBottom="8dp" />
+
+    <ListView
+        android:id="@+id/w_list"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <TextView
+        android:id="@+id/w_alpha_lbl"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:textColor="#FF9A9892" />
+
+    <SeekBar
+        android:id="@+id/w_alpha"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:text="Text color (hex)"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:textColor="#FF9A9892" />
+
+    <EditText
+        android:id="@+id/w_color"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="#F2F0EC"
+        android:inputType="text"
+        android:maxLength="9"
+        android:textColor="#FFF2F0EC"
+        android:textColorHint="#FF6E6C68" />
+
+    <Button
+        android:id="@+id/w_save"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Add widget"
+        android:textStyle="bold"
+        android:textColor="#FF0D0E10"
+        android:backgroundTint="#FFD7EB6E" />
+</LinearLayout>
