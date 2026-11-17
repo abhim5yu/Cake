@@ -93,38 +93,66 @@ jobs:
       - name: Sync web assets
         run: npx cap sync android
 
-      - name: Use stable debug keystore
+      - name: Set up release signing
+        env:
+          KS_B64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+          KS_PASS: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.RELEASE_KEY_PASSWORD }}
         run: |
           set -e
-          test -f keystore/debug.keystore || { echo "keystore/debug.keystore is missing from the repo"; exit 1; }
-          mkdir -p ~/.android
-          cp keystore/debug.keystore ~/.android/debug.keystore
-          echo "Keystore SHA-256 (from repo file):"
-          keytool -list -v -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey \
-            | grep "SHA256:" | head -1 || { echo "Could not read keystore. Wrong alias or password."; exit 1; }
+          if [ -z "$KS_B64" ] || [ -z "$KS_PASS" ] || [ -z "$KEY_ALIAS" ] || [ -z "$KEY_PASS" ]; then
+            echo "Missing one or more release signing secrets (RELEASE_KEYSTORE_BASE64, RELEASE_KEYSTORE_PASSWORD, RELEASE_KEY_ALIAS, RELEASE_KEY_PASSWORD)."
+            exit 1
+          fi
+          echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/release.keystore"
+          echo "CAKE_KS=$RUNNER_TEMP/release.keystore" >> "$GITHUB_ENV"
+          echo "CAKE_KS_PASS=$KS_PASS" >> "$GITHUB_ENV"
+          echo "CAKE_KEY_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
+          echo "CAKE_KEY_PASS=$KEY_PASS" >> "$GITHUB_ENV"
+          python3 - <<'PY'
+          p = "android/app/build.gradle"
+          s = open(p, encoding="utf-8").read()
+          if "CAKE_KS" not in s:
+              signing = '''
+              signingConfigs {
+                  release {
+                      storeFile file(System.getenv("CAKE_KS"))
+                      storePassword System.getenv("CAKE_KS_PASS")
+                      keyAlias System.getenv("CAKE_KEY_ALIAS")
+                      keyPassword System.getenv("CAKE_KEY_PASS")
+                  }
+              }
+              '''
+              s = s.replace("android {", "android {\n" + signing, 1)
+              # Sign debug builds with the release key too, so the APK we publish is the one that updates.
+              s = s.replace("buildTypes {", "buildTypes {\n        debug { signingConfig signingConfigs.release }", 1)
+              open(p, "w", encoding="utf-8").write(s)
+          PY
+          grep -q "CAKE_KS" android/app/build.gradle
 
-      - name: Build debug APK
+      - name: Build APK
         working-directory: android
         run: |
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
 
-      - name: Verify APK signing key matches keystore
+      - name: Verify APK is signed with the release key
         run: |
           set -e
           APK=android/app/build/outputs/apk/debug/app-debug.apk
           BT=$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)
-          KS=$(keytool -list -v -keystore keystore/debug.keystore -storepass android -alias androiddebugkey 2>/dev/null \
+          KS=$(keytool -list -v -keystore "$CAKE_KS" -storepass "$CAKE_KS_PASS" -alias "$CAKE_KEY_ALIAS" 2>/dev/null \
                | grep "SHA256:" | head -1 | sed 's/.*SHA256: //' | tr -d ': ' | tr 'A-F' 'a-f')
           APKSIG=$("$BT/apksigner" verify --print-certs "$APK" \
                | grep "certificate SHA-256" | head -1 | sed 's/.*digest: //' | tr -d ': ' | tr 'A-F' 'a-f')
-          echo "Keystore fingerprint: $KS"
-          echo "APK fingerprint:      $APKSIG"
+          echo "Release key fingerprint: $KS"
+          echo "APK fingerprint:         $APKSIG"
           if [ -z "$KS" ] || [ "$KS" != "$APKSIG" ]; then
-            echo "MISMATCH: this APK would not install over the previous build. Not publishing."
+            echo "MISMATCH: APK is not signed with the release key. Not publishing."
             exit 1
           fi
-          echo "OK: APK is signed with the repo keystore."
+          echo "OK: APK is signed with the release key."
 
       - name: Upload APK as artifact
         uses: actions/upload-artifact@v4
