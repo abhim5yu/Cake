@@ -4,6 +4,9 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+
+import com.abhim5yu.cake.widgets.CakeWidgetPlugin;
+import com.abhim5yu.cake.widgets.MediumWidgetProvider;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
@@ -23,9 +26,10 @@ public class MainActivity extends BridgeActivity {
     }
 
     private void handleIntent(Intent intent) {
-        if (intent != null && intent.hasExtra("wish_id")) {
-            pendingWishId = intent.getStringExtra("wish_id");
-            intent.removeExtra("wish_id");
+        // Key must match MediumWidgetProvider.EXTRA_WISH_ID.
+        if (intent != null && intent.hasExtra(MediumWidgetProvider.EXTRA_WISH_ID)) {
+            pendingWishId = intent.getStringExtra(MediumWidgetProvider.EXTRA_WISH_ID);
+            intent.removeExtra(MediumWidgetProvider.EXTRA_WISH_ID);
             tryOpenWish(0);
         }
     }
