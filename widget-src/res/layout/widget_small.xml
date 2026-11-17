@@ -1,16 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 2x2 widget. Only views RemoteViews supports: FrameLayout, LinearLayout, ImageView, View, TextView. -->
+<!-- DIAGNOSTIC: minimal 2x2 layout. Same view IDs as before, but no ImageView. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/w_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#FF16181C">
 
-    <ImageView
+    <View
         android:id="@+id/w_photo"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:scaleType="centerCrop" />
+        android:layout_height="match_parent" />
 
     <View
         android:id="@+id/w_scrim"
@@ -20,43 +19,30 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_gravity="bottom"
         android:orientation="vertical"
         android:gravity="bottom"
         android:padding="12dp">
 
-        <LinearLayout
+        <TextView
+            android:id="@+id/w_days"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="bottom">
+            android:textSize="40sp"
+            android:textStyle="bold"
+            android:textColor="#FFF2F0EC" />
 
-            <TextView
-                android:id="@+id/w_days"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textSize="46sp"
-                android:textStyle="bold"
-                android:includeFontPadding="false"
-                android:textColor="#FFF2F0EC" />
-
-            <TextView
-                android:id="@+id/w_daylbl"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="6dp"
-                android:layout_marginBottom="6dp"
-                android:textSize="13sp"
-                android:textStyle="bold"
-                android:textColor="#FFF2F0EC" />
-        </LinearLayout>
+        <TextView
+            android:id="@+id/w_daylbl"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="13sp"
+            android:textColor="#FFF2F0EC" />
 
         <TextView
             android:id="@+id/w_name"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:textSize="23sp"
+            android:textSize="18sp"
             android:textStyle="bold"
             android:maxLines="1"
             android:ellipsize="end"
