@@ -34,47 +34,58 @@ public class SmallWidgetProvider extends AppWidgetProvider {
     }
 
     static void update(Context ctx, AppWidgetManager mgr, int appWidgetId) {
-        RemoteViews rv = new RemoteViews(ctx.getPackageName(), R.layout.widget_small);
+        try {
+            RemoteViews rv = new RemoteViews(ctx.getPackageName(), R.layout.widget_small);
+            JSONObject b = pickBirthday(ctx, appWidgetId);
+            int color = WidgetPrefs.getWidgetTextColor(ctx, appWidgetId);
+            int transparencyPct = WidgetPrefs.getWidgetAlpha(ctx, appWidgetId);
 
-        JSONObject b = pickBirthday(ctx, appWidgetId);
-        int color = WidgetPrefs.getWidgetTextColor(ctx, appWidgetId);
-        int transparencyPct = WidgetPrefs.getWidgetAlpha(ctx, appWidgetId);
+            rv.setInt(R.id.w_days, "setTextColor", color);
+            rv.setInt(R.id.w_daylbl, "setTextColor", color);
+            rv.setInt(R.id.w_name, "setTextColor", color);
 
-        // Text color applies to all text in this widget.
-        rv.setInt(R.id.w_days, "setTextColor", color);
-        rv.setInt(R.id.w_daylbl, "setTextColor", color);
-        rv.setInt(R.id.w_name, "setTextColor", color);
+            float opacity = 1f - transparencyPct / 100f;
+            rv.setInt(R.id.w_root, "setBackgroundColor", withAlpha(0xFF16181C, opacity));
+            rv.setFloat(R.id.w_photo, "setAlpha", opacity);
+            rv.setInt(R.id.w_scrim, "setBackgroundColor", withAlpha(0xFF000000, 0.55f * opacity));
 
-        // Transparency only affects the background, photo and overlay, never the text.
-        float opacity = 1f - transparencyPct / 100f;
-        rv.setInt(R.id.w_root, "setBackgroundColor", withAlpha(0xFF16181C, opacity));
-        rv.setFloat(R.id.w_photo, "setAlpha", opacity);
-        rv.setInt(R.id.w_scrim, "setBackgroundColor", withAlpha(0xFF000000, 0.55f * opacity));
-
-        if (b == null) {
-            rv.setTextViewText(R.id.w_days, "");
-            rv.setTextViewText(R.id.w_daylbl, "");
-            rv.setTextViewText(R.id.w_name, ctx.getString(R.string.widget_empty));
-            rv.setViewVisibility(R.id.w_photo, View.GONE);
-        } else {
-            int days = WidgetPrefs.daysUntil(b);
-            rv.setTextViewText(R.id.w_days, String.valueOf(days));
-            rv.setTextViewText(R.id.w_daylbl, days == 0 ? "today" : "days to go");
-            rv.setTextViewText(R.id.w_name, b.optString("name", ""));
-
-            Bitmap photo = loadPhoto(b.optString("photoPath", ""));
-            if (photo != null) {
-                rv.setImageViewBitmap(R.id.w_photo, photo);
-                rv.setViewVisibility(R.id.w_photo, View.VISIBLE);
-                rv.setViewVisibility(R.id.w_scrim, View.VISIBLE);
-            } else {
+            if (b == null) {
+                rv.setTextViewText(R.id.w_days, "");
+                rv.setTextViewText(R.id.w_daylbl, "");
+                rv.setTextViewText(R.id.w_name, ctx.getString(R.string.widget_empty));
                 rv.setViewVisibility(R.id.w_photo, View.GONE);
                 rv.setViewVisibility(R.id.w_scrim, View.GONE);
-            }
-        }
+            } else {
+                int days = WidgetPrefs.daysUntil(b);
+                rv.setTextViewText(R.id.w_days, String.valueOf(days));
+                rv.setTextViewText(R.id.w_daylbl, days == 0 ? "today" : "days to go");
+                rv.setTextViewText(R.id.w_name, b.optString("name", ""));
 
-        rv.setOnClickPendingIntent(R.id.w_root, openAppIntent(ctx, appWidgetId));
-        mgr.updateAppWidget(appWidgetId, rv);
+                Bitmap photo = loadPhoto(b.optString("photoPath", ""));
+                if (photo != null) {
+                    rv.setImageViewBitmap(R.id.w_photo, photo);
+                    rv.setViewVisibility(R.id.w_photo, View.VISIBLE);
+                    rv.setViewVisibility(R.id.w_scrim, View.VISIBLE);
+                } else {
+                    rv.setViewVisibility(R.id.w_photo, View.GONE);
+                    rv.setViewVisibility(R.id.w_scrim, View.GONE);
+                }
+            }
+
+            rv.setOnClickPendingIntent(R.id.w_root, openAppIntent(ctx, appWidgetId));
+            mgr.updateAppWidget(appWidgetId, rv);
+        } catch (Throwable t) {
+            // Show the real error on the widget so it can be read and fixed,
+            // instead of Android's generic "Can't load widget".
+            RemoteViews err = new RemoteViews(ctx.getPackageName(), R.layout.widget_small);
+            err.setTextViewText(R.id.w_days, "!");
+            err.setTextViewText(R.id.w_daylbl, "error");
+            String msg = t.getClass().getSimpleName() + ": " + String.valueOf(t.getMessage());
+            err.setTextViewText(R.id.w_name, msg.length() > 120 ? msg.substring(0, 120) : msg);
+            err.setViewVisibility(R.id.w_photo, View.GONE);
+            err.setViewVisibility(R.id.w_scrim, View.GONE);
+            mgr.updateAppWidget(appWidgetId, err);
+        }
     }
 
     /** The widget's chosen person, or the next upcoming birthday if none is chosen. */
