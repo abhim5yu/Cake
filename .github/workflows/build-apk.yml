@@ -60,6 +60,30 @@ jobs:
           PY
           find android/app/src/main/res -name "ic_launcher*" -o -name "cake_icon_bg*" | sort
 
+      - name: Add home-screen widgets
+        run: |
+          set -e
+          APP=android/app/src/main
+          JAVA_DIR=$APP/java/com/abhim5yu/cake
+          mkdir -p "$JAVA_DIR/widgets"
+          # MainActivity lives in the app's root package; everything else is in .widgets.
+          cp widget-src/java/MainActivity.java "$JAVA_DIR/MainActivity.java"
+          for f in widget-src/java/*.java; do
+            n=$(basename "$f")
+            [ "$n" = "MainActivity.java" ] || cp "$f" "$JAVA_DIR/widgets/$n"
+          done
+          cp -r widget-src/res/. "$APP/res/"
+          python3 - <<'PY'
+          p = "android/app/src/main/AndroidManifest.xml"
+          s = open(p, encoding="utf-8").read()
+          if "SmallWidgetProvider" not in s:
+              snippet = open("widget-src/manifest_widgets.xml", encoding="utf-8").read()
+              s = s.replace("</application>", snippet + "\n    </application>", 1)
+              open(p, "w", encoding="utf-8").write(s)
+          PY
+          test -f "$JAVA_DIR/widgets/SmallWidgetProvider.java"
+          grep -q "SmallWidgetProvider" "$APP/AndroidManifest.xml"
+
       - name: Dark launch screen
         run: |
           f=android/app/src/main/res/values/styles.xml
