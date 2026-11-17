@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_empty">Add a birthday in the app</string>
+    <string name="widget_small_label">Cake · Small</string>
+    <string name="widget_medium_label">Cake · Wish</string>
+    <string name="widget_large_label">Cake · Upcoming</string>
+</resources>
